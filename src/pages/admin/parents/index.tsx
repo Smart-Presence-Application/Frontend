@@ -116,7 +116,6 @@ export default function ParentsPage() {
     {
       key: "password",
       header: "Password",
-      hideBelow: "md",
       cell: (p) =>
         p.password_changed || !p.initial_password ? (
           <Pill tone="green">
