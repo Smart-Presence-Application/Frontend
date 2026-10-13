@@ -8,7 +8,7 @@ import { Logo } from "@/components/common/logo"
 import { PageLoader } from "@/components/common/page-loader"
 import { Seo } from "@/components/common/seo"
 import { Button } from "@/components/ui/button"
-import { useAuth } from "@/context/auth"
+import { isPublicPath, useAuth } from "@/context/auth"
 import { trackPageView } from "@/lib/analytics"
 import { onMaintenance } from "@/lib/api"
 import { systemApi } from "@/lib/endpoints"
@@ -36,14 +36,15 @@ export function useSystemStatus() {
  * Admins sees the maintenance screen; the login page stays open so a Super
  * Admin can sign in and switch it off. Any API call answered with "maintenance"
  * turns the screen on straight away, and a signed-in Super Admin still loading is
- * not flashed with it. When it ends the app reloads to drop requests that failed
+ * not flashed with it. Leaving the public website starts the session check if it was skipped. When it ends the app reloads to drop requests that failed
  * meanwhile. Also sends one analytics page view per route, after render so the new
  * page's <title> is in place.
  */
 export function MaintenanceGate() {
   const queryClient = useQueryClient()
-  const { user, loading } = useAuth()
+  const { user, loading, checkSession } = useAuth()
   const { pathname, search } = useLocation()
+  const needsSession = !isPublicPath(pathname)
   const status = useSystemStatus()
   const maintenance = !!status.data?.maintenance
   const wasOn = useRef(false)
@@ -62,11 +63,15 @@ export function MaintenanceGate() {
   }, [maintenance, status.isSuccess])
 
   useEffect(() => {
+    if (needsSession) checkSession()
+  }, [needsSession, checkSession])
+
+  useEffect(() => {
     const timer = setTimeout(() => trackPageView(pathname + search), 0)
     return () => clearTimeout(timer)
   }, [pathname, search])
 
-  if (maintenance && loading) return <PageLoader />
+  if (maintenance && loading && needsSession) return <PageLoader />
   if (maintenance && user?.role !== "SUPER_ADMIN" && !OPEN_DURING_MAINTENANCE.has(pathname)) {
     return <MaintenanceScreen message={status.data?.message} checking={status.isFetching} onRetry={() => void status.refetch()} />
   }

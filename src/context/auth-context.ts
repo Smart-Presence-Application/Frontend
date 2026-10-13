@@ -4,7 +4,10 @@ import type { User } from "@/lib/api"
 
 export interface AuthContextValue {
   user: User | null
+  /** True until the session check has finished; public pages may never start it. */
   loading: boolean
+  /** Runs the session check once; the root route calls it before any page that needs the user. */
+  checkSession: () => void
   setUser: (user: User | null) => void
   logout: () => Promise<void>
 }

@@ -1,12 +1,13 @@
 /**
- * Google Analytics 4 (gtag.js). Off unless VITE_GA_MEASUREMENT_ID is set.
+ * Google Analytics 4 (gtag.js). Production builds use the site's property unless
+ * VITE_GA_MEASUREMENT_ID names another; development stays off unless it is set.
  *
  * The app is a single-page app, so GA's automatic page view (on full page
  * loads only) is turned off and every route change is sent by
  * `trackPageView` instead; see RouteAnalytics in app-status.tsx.
  */
 
-const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined
+const GA_ID = (import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined) || (import.meta.env.PROD ? "G-VDV0CJD720" : undefined)
 
 declare global {
   interface Window {

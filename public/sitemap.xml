@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Public pages only. Submit https://smartpresence.app/sitemap.xml in Google Search Console. -->
+<!-- Public pages only. Submit https://smartpresence.tech/sitemap.xml in Google Search Console. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://smartpresence.app/</loc>
+    <loc>https://smartpresence.tech/</loc>
     <lastmod>2026-10-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://smartpresence.app/privacy-policy</loc>
+    <loc>https://smartpresence.tech/privacy-policy</loc>
     <lastmod>2026-10-11</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://smartpresence.app/login</loc>
+    <loc>https://smartpresence.tech/login</loc>
     <lastmod>2026-10-11</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>

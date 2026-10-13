@@ -165,9 +165,10 @@
   to { transform: translateX(-50%); }
 }
 
+/* Moves a full-height layer so the line can travel on the compositor; animating `top` repaints every frame. */
 @keyframes scan {
-  0%, 100% { top: 0%; }
-  50% { top: calc(100% - 2px); }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(calc(100% - 2px)); }
 }
 
 @keyframes float {

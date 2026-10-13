@@ -1,0 +1,11 @@
+# SmartPresence
+
+> SmartPresence is a school management platform for teachers, students, parents, attendance, notices and reports, with AI face recognition that takes classroom attendance from a single photo.
+
+The signed-in portals for super admins, school admins, teachers and parents are private and not meant for crawling.
+
+## Pages
+
+- [Home](https://smartpresence.tech/): what SmartPresence does, how it works, features and FAQ
+- [Privacy policy](https://smartpresence.tech/privacy-policy): what data is collected and how it is used
+- [Sign in](https://smartpresence.tech/login): login for schools, teachers and parents

@@ -159,7 +159,9 @@ function HeroVisual() {
               )
             })}
           </div>
-          <div aria-hidden="true" className="absolute inset-x-0 h-0.5 animate-scan bg-primary shadow-[0_0_18px_4px] shadow-primary/60" />
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 animate-scan will-change-transform">
+            <div className="h-0.5 bg-primary shadow-[0_0_18px_4px] shadow-primary/60" />
+          </div>
         </div>
 
         <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">

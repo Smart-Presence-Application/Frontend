@@ -180,7 +180,9 @@ export function Demo() {
               </div>
 
               {phase === "scanning" && (
-                <div aria-hidden="true" className="absolute inset-x-0 h-0.5 animate-scan bg-primary shadow-[0_0_20px_6px] shadow-primary/60" />
+                <div aria-hidden="true" className="pointer-events-none absolute inset-0 animate-scan will-change-transform">
+                  <div className="h-0.5 bg-primary shadow-[0_0_20px_6px] shadow-primary/60" />
+                </div>
               )}
 
               <AnimatePresence>

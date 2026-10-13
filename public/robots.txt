@@ -1,4 +1,4 @@
-# SmartPresence - https://smartpresence.app
+# SmartPresence - https://smartpresence.tech
 User-agent: *
 Allow: /
 # Signed-in portals: nothing for search engines there.
@@ -9,4 +9,4 @@ Disallow: /teacher
 Disallow: /parent
 Disallow: /api/
 
-Sitemap: https://smartpresence.app/sitemap.xml
+Sitemap: https://smartpresence.tech/sitemap.xml
