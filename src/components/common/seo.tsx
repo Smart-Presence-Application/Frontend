@@ -1,5 +1,5 @@
 /** Public address of the site; used for canonical links and share previews. */
-const SITE_URL = (import.meta.env.VITE_SITE_URL ?? "https://smartpresence.tech").replace(/\/$/, "")
+const SITE_URL = (import.meta.env.VITE_SITE_URL ?? "https://www.smartpresence.tech").replace(/\/$/, "")
 
 /** 1200x630 picture shown when a link is shared (WhatsApp, LinkedIn, X, Slack...). */
 const SHARE_IMAGE = `${SITE_URL}/og-image.png`

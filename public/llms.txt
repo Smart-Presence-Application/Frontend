@@ -6,6 +6,6 @@ The signed-in portals for super admins, school admins, teachers and parents are 
 
 ## Pages
 
-- [Home](https://smartpresence.tech/): what SmartPresence does, how it works, features and FAQ
-- [Privacy policy](https://smartpresence.tech/privacy-policy): what data is collected and how it is used
-- [Sign in](https://smartpresence.tech/login): login for schools, teachers and parents
+- [Home](https://www.smartpresence.tech/): what SmartPresence does, how it works, features and FAQ
+- [Privacy policy](https://www.smartpresence.tech/privacy-policy): what data is collected and how it is used
+- [Sign in](https://www.smartpresence.tech/login): login for schools, teachers and parents
