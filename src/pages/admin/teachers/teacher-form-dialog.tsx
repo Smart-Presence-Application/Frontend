@@ -96,6 +96,7 @@ function TeacherForm({ teacher, onDone, onSaved }: { teacher?: Teacher; onDone: 
       invalidate: editing ? [["teachers"], ["teacher"]] : [["teachers"], ["dashboard"]],
       toastError: false,
       onError: errors.capture,
+      onQueued: () => onDone(false),
       onSuccess: (data) => {
         onSaved?.(data)
         onDone(false)

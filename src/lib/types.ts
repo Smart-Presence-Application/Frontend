@@ -421,6 +421,8 @@ export interface SchoolCalendar {
   date_from: string
   date_to: string
   academic_year: { id: number; name: string; start_date: string; end_date: string } | null
+  /** Working days (events count, holidays do not) in the requested range and in the academic year. */
+  working_days: { in_range: number; year_total: number | null; year_to_date: number | null }
   days: CalendarDay[]
 }
 

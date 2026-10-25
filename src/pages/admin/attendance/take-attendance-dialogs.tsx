@@ -303,6 +303,7 @@ export function ManualAttendanceDialog({ open, onOpenChange, onDone, defaultScho
       invalidate: INVALIDATE,
       toastError: false,
       onError: errors.capture,
+      onQueued: () => onOpenChange(false),
       onSuccess: (data) => {
         onOpenChange(false)
         onDone(data)

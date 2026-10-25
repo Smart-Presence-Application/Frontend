@@ -51,6 +51,7 @@ export default function MySchoolPage() {
   })
 
   const logo = useApiMutation((file: File) => schoolsApi.updateMyLogo(file), {
+    onQueued: () => {},
     onSuccess: (updated) => queryClient.setQueryData(["school", "me"], updated),
   })
 

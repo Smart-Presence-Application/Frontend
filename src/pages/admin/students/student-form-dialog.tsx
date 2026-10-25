@@ -68,6 +68,7 @@ function StudentForm({ student, defaults, onDone }: { student?: Student; default
       invalidate: editing ? [["students"], ["student"], ["parents"]] : [["students"], ["faces"], ["dashboard"]],
       toastError: false,
       onError: errors.capture,
+      onQueued: onDone,
       onSuccess: (data) => {
         onDone()
         if (!editing) {

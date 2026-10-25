@@ -46,9 +46,10 @@ export default function ProfilePage() {
   const update = useApiMutation((body: Record<string, unknown>) => profileApi.update(body), {
     toastError: false,
     onError: profileErrors.capture,
+    onQueued: () => {},
     onSuccess: (d) => setUser(d.user),
   })
-  const image = useApiMutation((file: File) => profileApi.updateImage(file), { onSuccess: (d) => setUser(d.user) })
+  const image = useApiMutation((file: File) => profileApi.updateImage(file), { onQueued: () => {}, onSuccess: (d) => setUser(d.user) })
   const password = useApiMutation(
     ({ body }: { body: Record<string, unknown>; form: HTMLFormElement }) => profileApi.changePassword(body),
     {

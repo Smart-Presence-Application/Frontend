@@ -256,6 +256,7 @@ function UserSheetBody({ user, onChanged }: { user: User; onChanged: (u: User) =
     invalidate: [["users"]],
     toastError: false,
     onError: profileErrors.capture,
+    onQueued: () => {},
     onSuccess: onChanged,
   })
   const password = useApiMutation(
@@ -268,6 +269,7 @@ function UserSheetBody({ user, onChanged }: { user: User; onChanged: (u: User) =
   )
   const status = useApiMutation(() => usersApi.setStatus(user.id, !user.is_active), {
     invalidate: [["users"], ["dashboard"]],
+    onQueued: () => setStatusOpen(false),
     onSuccess: (u) => {
       onChanged(u)
       setStatusOpen(false)

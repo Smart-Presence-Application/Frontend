@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
-import { HeartHandshake, KeyRound, MoreHorizontal, Pencil, Plus, ShieldCheck, Unlink, Upload, X } from "lucide-react"
+import { HeartHandshake, KeyRound, LockKeyhole, MoreHorizontal, Pencil, Plus, ShieldCheck, Unlink, Upload, X } from "lucide-react"
 
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { DataTable, type Column } from "@/components/admin/data-table"
@@ -18,13 +18,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { usePanel } from "@/context/panel"
 import { useApiMutation } from "@/hooks/use-api-mutation"
 import { useUrlState } from "@/hooks/use-url-state"
 import { parentsApi } from "@/lib/endpoints"
 import { formatDateTime, timeAgo } from "@/lib/format"
 import type { Parent, Student } from "@/lib/types"
 import { ParentBulkDialog } from "./parent-bulk-dialog"
-import { MaskedPassword, NewPasswordDialog, ParentCreateDialog, ParentEditDialog } from "./parent-dialogs"
+import { MaskedPassword, NewPasswordDialog, ParentCreateDialog, ParentEditDialog, SetPasswordDialog } from "./parent-dialogs"
 
 const ORDERING = [
   { value: "user__name", label: "Name A to Z" },
@@ -33,10 +34,13 @@ const ORDERING = [
   { value: "created_at", label: "Oldest first" },
 ]
 
-type Action = "create" | "bulk" | "edit" | "reset" | "password" | "unlink"
+type Action = "create" | "bulk" | "edit" | "reset" | "password" | "set-password" | "unlink"
 
 export default function ParentsPage() {
   const url = useUrlState()
+  /** School and Super Admins may choose a parent's password, as they can a teacher's. */
+  const { kind } = usePanel()
+  const isAdmin = kind === "super" || kind === "school"
   const [action, setAction] = useState<Action | null>(null)
   const [target, setTarget] = useState<Parent>()
   const [child, setChild] = useState<Student>()
@@ -156,6 +160,11 @@ export default function ParentsPage() {
             <DropdownMenuItem onSelect={() => openFor("reset", p)}>
               <KeyRound /> Reset password
             </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem onSelect={() => openFor("set-password", p)}>
+                <LockKeyhole /> Set password
+              </DropdownMenuItem>
+            )}
             {p.students.length > 0 && (
               <>
                 <DropdownMenuSeparator />
@@ -250,6 +259,7 @@ export default function ParentsPage() {
       <ParentBulkDialog open={action === "bulk"} onOpenChange={(o) => !o && close()} defaultSchool={school} />
       <ParentEditDialog open={action === "edit"} onOpenChange={(o) => !o && close()} parent={target} />
       <NewPasswordDialog open={action === "password"} onOpenChange={(o) => !o && close()} parent={target} />
+      <SetPasswordDialog open={action === "set-password"} onOpenChange={(o) => !o && close()} parent={target} />
 
       <ConfirmDialog
         open={action === "reset"}

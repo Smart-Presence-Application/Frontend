@@ -1,6 +1,7 @@
 import { use, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 
-import { authApi, onSessionExpired, type User } from "@/lib/api"
+import { ApiError, authApi, onSessionExpired, type User } from "@/lib/api"
+import { setQueueUser } from "@/lib/offline-queue"
 import { clearOfflineData } from "@/lib/pwa"
 import { disablePush } from "@/lib/push"
 import { queryClient } from "@/lib/query-client"
@@ -15,11 +16,21 @@ import { AuthContext } from "./auth-context"
  *
  * The check is skipped on public pages for browsers that have never signed in, so
  * visitors to the website do not trigger a failed profile and refresh call each.
+ *
+ * The last signed-in user is remembered on the device, so when the app opens with no
+ * connection (and no saved profile) it still shows that user's panel with saved data,
+ * instead of the login page. Only an answer from the server signs the user out.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUserState] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const started = useRef(false)
+
+  const setUser = useCallback((next: User | null) => {
+    rememberUser(next)
+    setQueueUser(next?.id ?? null)
+    setUserState(next)
+  }, [])
 
   const checkSession = useCallback(() => {
     if (started.current) return
@@ -27,9 +38,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authApi
       .profile()
       .then((data) => setUser(data.user))
-      .catch(() => setUser(null))
+      .catch((err) => setUser(err instanceof ApiError ? null : rememberedUser()))
       .finally(() => setLoading(false))
-  }, [])
+  }, [setUser])
 
   useEffect(() => {
     if (hasSignedIn() || !isPublicPath(window.location.pathname)) checkSession()
@@ -49,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       unsubscribe()
     }
-  }, [])
+  }, [setUser])
 
   const logout = useCallback(async () => {
     try {
@@ -60,9 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.clear()
       void clearOfflineData()
     }
-  }, [])
+  }, [setUser])
 
-  const value = useMemo(() => ({ user, loading, setUser, logout, checkSession }), [user, loading, logout, checkSession])
+  const value = useMemo(() => ({ user, loading, setUser, logout, checkSession }), [user, loading, setUser, logout, checkSession])
   return <AuthContext value={value}>{children}</AuthContext>
 }
 
@@ -89,6 +100,26 @@ function rememberSignedIn(on: boolean) {
   try {
     if (on) localStorage.setItem(SIGNED_IN_KEY, "1")
     else localStorage.removeItem(SIGNED_IN_KEY)
+  } catch {}
+}
+
+/** The signed-in user, kept on the device for opening the app offline. Cleared on sign-out. */
+const USER_KEY = "sp-user"
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function rememberedUser(): User | null {
+  try {
+    const raw = localStorage.getItem(USER_KEY)
+    return raw ? (JSON.parse(raw) as User) : null
+  } catch {
+    return null
+  }
+}
+
+function rememberUser(user: User | null) {
+  try {
+    if (user) localStorage.setItem(USER_KEY, JSON.stringify(user))
+    else localStorage.removeItem(USER_KEY)
   } catch {}
 }
 

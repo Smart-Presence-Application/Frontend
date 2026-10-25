@@ -87,6 +87,7 @@ export default function ComposeNotificationPage() {
       invalidate: [["notifications"], ["inbox"], ["dashboard"]],
       toastError: false,
       onError: errors.capture,
+      onQueued: () => navigate(panelPath("/admin/notifications")),
       onSuccess: (n) => navigate(panelPath(`/admin/notifications/${n.id}`)),
     }
   )

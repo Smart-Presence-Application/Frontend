@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { calendarApi } from "@/lib/endpoints"
 import { formatDate, isoDate } from "@/lib/format"
-import type { CalendarDay, DayType } from "@/lib/types"
+import type { CalendarDay, DayType, SchoolCalendar } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -37,8 +37,9 @@ function describe(day: CalendarDay) {
 
 /**
  * Month view of the school calendar: working days, events, holidays and
- * weekends, with the month's holidays and events listed underneath. "Today" is fixed
- * when the card mounts so it means the same month throughout.
+ * weekends, with the month's holidays and events listed underneath. Working days
+ * are totalled for the month and the academic year. "Today" is fixed when the card
+ * mounts so it means the same month throughout.
  */
 export function SchoolCalendarCard({ className }: { className?: string }) {
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
@@ -108,6 +109,8 @@ export function SchoolCalendarCard({ className }: { className?: string }) {
             </Button>
           )}
         </div>
+
+        <WorkingDayTotals totals={data?.working_days} loading={query.isLoading} monthLabel={monthFmt.format(month)} yearName={data?.academic_year?.name} />
 
         {query.error && !data ? (
           <ErrorState error={query.error} onRetry={query.refetch} />
@@ -180,5 +183,42 @@ export function SchoolCalendarCard({ className }: { className?: string }) {
         )}
       </CardContent>
     </Card>
+  )
+}
+
+/** Working days in the month shown, and in the academic year: so far and in total. */
+function WorkingDayTotals({
+  totals,
+  loading,
+  monthLabel,
+  yearName,
+}: {
+  totals?: SchoolCalendar["working_days"]
+  loading: boolean
+  monthLabel: string
+  yearName?: string
+}) {
+  const tiles = [
+    { label: "This month", value: totals?.in_range, hint: monthLabel },
+    { label: "Year so far", value: totals?.year_to_date, hint: yearName ? `${yearName}, up to today` : "No academic year" },
+    { label: "Year total", value: totals?.year_total, hint: yearName ?? "No academic year" },
+  ]
+  return (
+    <section aria-label="Working days">
+      <p className="mb-1.5 text-xs font-medium text-muted-foreground">Working days</p>
+      <dl className="grid grid-cols-3 gap-2">
+        {tiles.map((t) => (
+          <div key={t.label} className="min-w-0 rounded-xl bg-primary/5 px-3 py-2 ring-1 ring-primary/15">
+            <dt className="truncate text-[11px] font-medium text-muted-foreground">{t.label}</dt>
+            <dd className="text-lg font-semibold text-primary tabular-nums">
+              {loading ? <Skeleton className="my-1 h-5 w-8" /> : (t.value ?? "-")}
+            </dd>
+            <dd className="truncate text-[11px] text-muted-foreground" title={t.hint}>
+              {t.hint}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   )
 }
