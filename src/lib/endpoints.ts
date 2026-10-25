@@ -1,4 +1,5 @@
 import { api, downloadFile, request, toFormData, type Paginated, type QueryParams } from "./api"
+import { UPLOAD_TIMEOUT_MS } from "./outbox"
 import type {
   AIJob,
   AcademicYear,
@@ -176,6 +177,7 @@ export const parentsApi = {
     }>("parents/bulk-upload/", toFormData({ file, school })),
   update: (id: number, body: Body) => patch<Parent>(`parents/${id}/`, body),
   resetPassword: (id: number) => post<Parent>(`parents/${id}/reset-password/`),
+  setPassword: (id: number, body: Body) => post<Parent>(`parents/${id}/change-password/`, body),
   unlinkStudent: (id: number, studentPk: number) =>
     del<{ parent_deleted: boolean }>(`parents/${id}/students/${studentPk}/`),
 }
@@ -216,6 +218,15 @@ export const sessionsApi = {
 }
 
 const TA = "teacher-attendance/"
+
+/** A check-in or check-out photo; a connection that cannot send it in time counts as offline. */
+const capture = (kind: "check-in" | "check-out", image: Blob, captured_at: string) =>
+  request<TeacherAttendanceRecord>(`${TA}${kind}/`, {
+    method: "POST",
+    body: toFormData({ image: new File([image], `${kind}.jpg`, { type: image.type }), captured_at }),
+    timeoutMs: UPLOAD_TIMEOUT_MS,
+  })
+
 /**
  * Teacher attendance. `remove` (admins only) deletes the day and its check-in/out photos;
  * `today` is the signed-in teacher's record for today, or null before check-in.
@@ -230,10 +241,8 @@ export const teacherAttendanceApi = {
   summary: (params: QueryParams) =>
     api<{ date_from: string; date_to: string; teachers: TeacherSummaryRow[] }>(`${TA}summary/`, { params }),
   today: () => api<TeacherAttendanceRecord | null>(`${TA}today/`),
-  checkIn: (image: Blob, captured_at: string) =>
-    post<TeacherAttendanceRecord>(`${TA}check-in/`, toFormData({ image: new File([image], "check-in.jpg", { type: image.type }), captured_at })),
-  checkOut: (image: Blob, captured_at: string) =>
-    post<TeacherAttendanceRecord>(`${TA}check-out/`, toFormData({ image: new File([image], "check-out.jpg", { type: image.type }), captured_at })),
+  checkIn: (image: Blob, captured_at: string) => capture("check-in", image, captured_at),
+  checkOut: (image: Blob, captured_at: string) => capture("check-out", image, captured_at),
 }
 
 export const notificationsApi = {

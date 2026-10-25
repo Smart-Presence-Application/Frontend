@@ -1,16 +1,19 @@
 /*
  * SmartPresence service worker.
  *
- * - Offline app: pages fall back to the cached app shell, built assets are
- *   cached on first use, and API reads are network-first with the last good
- *   response kept for offline use (cleared on sign-out).
- * - Offline check-in: photos queued in IndexedDB ("outbox") are uploaded when
- *   the connection returns, via Background Sync where the browser has it and
- *   otherwise when a page asks.
+ * - Offline app: pages fall back to the cached app shell, every built asset
+ *   of the current release is precached (so screens never opened before still
+ *   load offline), and API reads are network-first with the last good response
+ *   kept for offline use (cleared on sign-out).
+ * - Offline changes: check-in photos ("outbox") and other changes
+ *   ("mutations") saved in IndexedDB are sent when the connection returns. The
+ *   open app does this itself (src/lib/sync.ts); Background Sync covers the
+ *   time the app is closed. Web Locks shared with the app keep the two from
+ *   sending the same item or refreshing the session at the same time.
  * - Web Push: shows notifications and opens the right page when tapped.
  */
 
-const VERSION = "v1"
+const VERSION = "v2"
 const SHELL = `sp-shell-${VERSION}`
 const ASSETS = `sp-assets-${VERSION}`
 const DATA = "sp-data"
@@ -25,6 +28,7 @@ self.addEventListener("install", (event) => {
     caches
       .open(SHELL)
       .then((cache) => cache.addAll(SHELL_FILES))
+      .then(() => precache().catch(() => undefined))
       .then(() => self.skipWaiting())
   )
 })
@@ -41,6 +45,29 @@ self.addEventListener("activate", (event) => {
 
 function cacheable(response) {
   return response && response.ok && response.type === "basic"
+}
+
+/**
+ * Caches every file of the current build listed in /precache-manifest.json (written by
+ * the build, see vite.config.ts) and drops assets of older builds. Runs on install and
+ * whenever a page asks, since a new release changes the list but not this file.
+ */
+async function precache() {
+  const response = await fetch("/precache-manifest.json", { cache: "no-store" })
+  if (!response.ok) return
+  const { files = [] } = await response.json()
+  const cache = await caches.open(ASSETS)
+  const wanted = new Set(files.map((f) => new URL(f, self.location.origin).href))
+  for (const request of await cache.keys()) if (!wanted.has(request.url)) await cache.delete(request)
+  for (const url of wanted) {
+    if (await cache.match(url)) continue
+    try {
+      const asset = await fetch(url)
+      if (cacheable(asset)) await cache.put(url, asset)
+    } catch {
+      return
+    }
+  }
 }
 
 /** With `markCached`, a cached fallback carries an X-SP-Offline header so the app can say it is showing saved data. */
@@ -123,42 +150,72 @@ self.addEventListener("message", (event) => {
   if (type === "CLEAR_DATA") {
     event.waitUntil(Promise.all([caches.delete(DATA), caches.delete(MEDIA)]))
   } else if (type === "SYNC_OUTBOX") {
-    event.waitUntil(processOutbox())
+    event.waitUntil(processOutbox().catch(() => undefined))
+  } else if (type === "PRECACHE") {
+    event.waitUntil(precache().catch(() => undefined))
   }
 })
 
+/* Same database, version and upgrade as src/lib/idb.ts. */
 const DB_NAME = "smartpresence"
-const STORE = "outbox"
+const DB_VERSION = 2
+const STORES = ["outbox", "mutations"]
 
 function openDb() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1)
-    req.onupgradeneeded = () => req.result.createObjectStore(STORE, { keyPath: "id", autoIncrement: true })
-    req.onsuccess = () => resolve(req.result)
+    const req = indexedDB.open(DB_NAME, DB_VERSION)
+    req.onupgradeneeded = () => {
+      for (const name of STORES) {
+        if (!req.result.objectStoreNames.contains(name)) req.result.createObjectStore(name, { keyPath: "id", autoIncrement: true })
+      }
+    }
+    req.onsuccess = () => {
+      req.result.onversionchange = () => req.result.close()
+      resolve(req.result)
+    }
     req.onerror = () => reject(req.error)
   })
 }
 
-function tx(db, mode, fn) {
+function tx(db, store, mode, fn) {
   return new Promise((resolve, reject) => {
-    const t = db.transaction(STORE, mode)
-    const result = fn(t.objectStore(STORE))
+    const t = db.transaction(store, mode)
+    const result = fn(t.objectStore(store))
     t.oncomplete = () => resolve(result && "result" in result ? result.result : undefined)
     t.onerror = () => reject(t.error)
   })
+}
+
+/** The same lock names the app uses (src/lib/locks.ts); runs unlocked where Web Locks are missing. */
+function withLock(name, fn) {
+  const locks = self.navigator && self.navigator.locks
+  return locks && locks.request ? locks.request(name, fn) : fn()
+}
+
+/** Worth trying again later: server trouble, busy, or the session needs signing in again. */
+function isTransient(status) {
+  return status >= 500 || status === 401 || status === 408 || status === 425 || status === 429
 }
 
 async function broadcast(message) {
   for (const client of await self.clients.matchAll({ type: "window", includeUncontrolled: true })) client.postMessage(message)
 }
 
-/** fetch with the session cookies, rotating the access cookie once if it expired. */
+/**
+ * fetch with the session cookies, rotating the access cookie once if it expired. The
+ * refresh token is single use, so this takes turns with the app: after waiting for the
+ * lock it first retries, in case the app has just refreshed.
+ */
 async function authedFetch(url, init = {}) {
   const run = () => fetch(url, { credentials: "include", ...init })
   let response = await run()
   if (response.status === 401) {
-    const refreshed = await fetch("/api/auth/refresh/", { method: "POST", credentials: "include" }).catch(() => null)
-    if (refreshed && refreshed.ok) response = await run()
+    response = await withLock("sp-auth-refresh", async () => {
+      const again = await run()
+      if (again.status !== 401) return again
+      const refreshed = await fetch("/api/auth/refresh/", { method: "POST", credentials: "include" }).catch(() => null)
+      return refreshed && refreshed.ok ? run() : again
+    })
   }
   return response
 }
@@ -172,65 +229,136 @@ function firstMessage(value) {
 
 let running = null
 
+/**
+ * Sends everything saved offline. Rejects while something is still waiting, so
+ * Background Sync tries again later (with back-off) instead of giving up.
+ */
 function processOutbox() {
-  running ??= drainOutbox().finally(() => {
+  running ??= (async () => {
+    const me = await signedInUser()
+    if (!me) throw new Error("Offline or signed out; try again later.")
+    const left = (await drainMutations(me)) + (await drainOutbox(me))
+    if (left > 0) throw new Error(`${left} item(s) still waiting to sync.`)
+  })().finally(() => {
     running = null
   })
   return running
 }
 
-/**
- * Uploads queued photos that belong to whoever is signed in now. It stops while
- * offline, on server errors or when signed out, keeping items queued; a photo the
- * server refuses (too old, already checked in) is kept as failed so the user sees why.
- */
-async function drainOutbox() {
-  const db = await openDb()
-  const items = ((await tx(db, "readonly", (s) => s.getAll())) || [])
-    .filter((item) => item.status !== "failed")
-    .sort((a, b) => a.createdAt - b.createdAt)
-  if (!items.length) return
-
-  let me
+/** Whoever is signed in now, from the server (never the offline copy), or null. */
+async function signedInUser() {
   try {
     const res = await authedFetch("/api/auth/profile/", { cache: "no-store" })
-    if (!res.ok || res.headers.get("X-SP-Offline")) return
-    me = (await res.json()).data.user
+    if (!res.ok || res.headers.get("X-SP-Offline")) return null
+    return (await res.json()).data.user
   } catch {
-    return
+    return null
   }
+}
 
-  for (const item of items) {
-    if (item.userId !== me.id) continue
-    const form = new FormData()
-    form.append("image", new File([item.image], `${item.kind}.jpg`, { type: item.image.type || "image/jpeg" }))
-    form.append("captured_at", item.capturedAt)
-    form.append("offline", "true")
+async function pendingItems(db, store, me) {
+  return ((await tx(db, store, "readonly", (s) => s.getAll())) || [])
+    .filter((item) => item.status !== "failed" && item.userId === me.id)
+    .sort((a, b) => a.createdAt - b.createdAt || a.id - b.id)
+}
 
-    let res
-    try {
-      res = await authedFetch(`/api/teacher-attendance/${item.kind}/`, { method: "POST", body: form })
-    } catch {
-      break
+/** Sends one saved item: "sent", "refused" (with the reason) or "wait" to keep it for later. */
+async function send(url, init) {
+  let res
+  try {
+    res = await authedFetch(url, init)
+  } catch {
+    return { outcome: "wait" }
+  }
+  const payload = await res.json().catch(() => null)
+  if (res.ok) return { outcome: "sent", message: payload && payload.message }
+  if (isTransient(res.status)) return { outcome: "wait" }
+  const error = firstMessage(payload && payload.errors) || (payload && payload.message) || "The server refused this change."
+  return { outcome: "refused", error }
+}
+
+/**
+ * Uploads queued photos that belong to whoever is signed in now, oldest first. It
+ * stops while offline, on server errors or when signed out, keeping items queued; a
+ * photo the server refuses (too old, already checked in) is kept as failed so the
+ * user sees why. Returns how many are still waiting.
+ */
+function drainOutbox(me) {
+  return withLock("sp-outbox", async () => {
+    const db = await openDb()
+    const items = await pendingItems(db, "outbox", me)
+    let left = items.length
+
+    for (const item of items) {
+      const form = new FormData()
+      form.append("image", new File([item.image], `${item.kind}.jpg`, { type: item.image.type || "image/jpeg" }))
+      form.append("captured_at", item.capturedAt)
+      form.append("offline", "true")
+
+      const result = await send(`/api/teacher-attendance/${item.kind}/`, { method: "POST", body: form })
+      if (result.outcome === "wait") break
+      if (result.outcome === "sent") {
+        await tx(db, "outbox", "readwrite", (s) => s.delete(item.id))
+        await broadcast({ type: "OUTBOX", event: "synced", kind: item.kind, message: result.message || "Synced." })
+      } else {
+        await tx(db, "outbox", "readwrite", (s) => s.put({ ...item, status: "failed", error: result.error }))
+        await broadcast({ type: "OUTBOX", event: "failed", kind: item.kind, message: result.error })
+      }
+      left--
     }
-    const payload = await res.json().catch(() => null)
+    await broadcast({ type: "OUTBOX", event: "changed" })
+    return left
+  })
+}
 
-    if (res.ok) {
-      await tx(db, "readwrite", (s) => s.delete(item.id))
-      await broadcast({ type: "OUTBOX", event: "synced", kind: item.kind, message: (payload && payload.message) || "Synced." })
-    } else if (res.status >= 500 || res.status === 401 || res.status === 403) {
-      break
-    } else {
-      const error = firstMessage(payload && payload.errors) || (payload && payload.message) || "The server refused this photo."
-      await tx(db, "readwrite", (s) => s.put({ ...item, status: "failed", error }))
-      await broadcast({ type: "OUTBOX", event: "failed", kind: item.kind, message: error })
+/** Rebuilds a saved request body (see packBody in src/lib/offline-queue.ts). */
+function unpackBody(body) {
+  if (!body) return { headers: { Accept: "application/json" } }
+  if ("json" in body) return { body: JSON.stringify(body.json), headers: { "Content-Type": "application/json", Accept: "application/json" } }
+  const form = new FormData()
+  for (const [name, value, filename] of body.form) {
+    if (typeof value === "string") form.append(name, value)
+    else form.append(name, value, filename)
+  }
+  return { body: form, headers: { Accept: "application/json" } }
+}
+
+function queryString(params) {
+  if (!params) return ""
+  const search = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    for (const v of Array.isArray(value) ? value : [value]) {
+      if (v === undefined || v === null || v === "") continue
+      search.append(key, String(v))
     }
   }
-  await broadcast({ type: "OUTBOX", event: "changed" })
+  const qs = search.toString()
+  return qs ? `?${qs}` : ""
+}
+
+/** Sends this user's other saved changes, oldest first, by the same rules as the app. */
+function drainMutations(me) {
+  return withLock("sp-sync-mutations", async () => {
+    const db = await openDb()
+    const items = await pendingItems(db, "mutations", me)
+    let left = items.length
+    let changed = false
+
+    for (const item of items) {
+      const result = await send(`/api/${item.path}${queryString(item.params)}`, { method: item.method, ...unpackBody(item.body) })
+      if (result.outcome === "wait") break
+      if (result.outcome === "sent") await tx(db, "mutations", "readwrite", (s) => s.delete(item.id))
+      else await tx(db, "mutations", "readwrite", (s) => s.put({ ...item, status: "failed", error: result.error }))
+      changed = true
+      left--
+    }
+    if (changed) await broadcast({ type: "QUEUE", event: "changed" })
+    return left
+  })
 }
 
 self.addEventListener("sync", (event) => {
-  if (event.tag === "outbox") event.waitUntil(processOutbox())
+  if (event.tag === "outbox" || event.tag === "mutations") event.waitUntil(processOutbox())
 })
 
 /**

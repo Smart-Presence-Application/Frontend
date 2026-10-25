@@ -48,6 +48,7 @@ export function SchoolFormDialog({ open, onOpenChange, school, onSaved }: School
       invalidate: [["schools"], ["school"]],
       toastError: false,
       onError: errors.capture,
+      onQueued: () => onOpenChange(false),
       onSuccess: (data) => {
         onSaved?.(data)
         onOpenChange(false)

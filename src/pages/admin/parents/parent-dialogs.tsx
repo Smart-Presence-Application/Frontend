@@ -123,11 +123,12 @@ function CreateForm({ defaultSchool, onDone }: { defaultSchool?: number | null; 
   const [result, setResult] = useState<{ parent: Parent; message: string } | null>(null)
 
   const mutation = useApiMutation(
-    (body: Record<string, unknown>) => parentsApi.create(body).then((r) => ({ message: r.message, data: { parent: r.data, message: r.message } })),
+    (body: Record<string, unknown>) => parentsApi.create(body).then((r) => ({ ...r, data: { parent: r.data, message: r.message } })),
     {
       invalidate: [["parents"], ["parent"], ["dashboard"]],
       toastError: false,
       onError: errors.capture,
+      onQueued: onDone,
       onSuccess: setResult,
     }
   )
@@ -313,5 +314,63 @@ export function NewPasswordDialog({ parent, open, onOpenChange }: { parent?: Par
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** An admin picks the parent's new password, as for teachers. It stays visible to staff until the parent changes it. */
+export function SetPasswordDialog({ parent, open, onOpenChange }: { parent?: Parent; open: boolean; onOpenChange: (open: boolean) => void }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Set password for {parent?.name}</DialogTitle>
+          <DialogDescription>
+            At least 12 characters with a mix of letters, numbers or symbols. The current password stops working, and the parent is asked to
+            change this one on next login.
+          </DialogDescription>
+        </DialogHeader>
+        {open && parent && <SetPasswordForm parent={parent} onDone={() => onOpenChange(false)} />}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function SetPasswordForm({ parent, onDone }: { parent: Parent; onDone: () => void }) {
+  const errors = useFormErrors()
+  const mutation = useApiMutation((body: Record<string, unknown>) => parentsApi.setPassword(parent.id, body), {
+    invalidate: [["parents"], ["parent"]],
+    toastError: false,
+    onError: errors.capture,
+    onSuccess: onDone,
+  })
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    errors.reset()
+    const form = new FormData(event.currentTarget)
+    mutation.mutate({ new_password: form.get("new_password"), confirm_new_password: form.get("confirm_new_password") })
+  }
+
+  return (
+    <>
+      <form id="parent-password-form" onSubmit={submit} className="grid gap-4">
+        <FormAlert message={errors.form} />
+        <Field label="New password" htmlFor="pp-new" required error={errors.fields.new_password}>
+          <Input id="pp-new" name="new_password" type="password" autoComplete="new-password" required minLength={12} />
+        </Field>
+        <Field label="Confirm new password" htmlFor="pp-confirm" required error={errors.fields.confirm_new_password}>
+          <Input id="pp-confirm" name="confirm_new_password" type="password" autoComplete="new-password" required minLength={12} />
+        </Field>
+      </form>
+      <DialogFooter>
+        <Button variant="outline" onClick={onDone} disabled={mutation.isPending}>
+          Cancel
+        </Button>
+        <Button type="submit" form="parent-password-form" disabled={mutation.isPending}>
+          {mutation.isPending ? <LoaderCircle className="animate-spin" /> : <KeyRound />}
+          Set password
+        </Button>
+      </DialogFooter>
+    </>
   )
 }

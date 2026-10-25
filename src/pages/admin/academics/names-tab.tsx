@@ -206,6 +206,10 @@ function BulkNamesDialog({
       toastSuccess: false,
       toastError: false,
       onError: errors.capture,
+      onQueued: () => {
+        setOutcome(null)
+        setText("")
+      },
       onSuccess: (data) => {
         const failed = (data.failed ?? []) as BulkFailure[]
         const created = data.created ?? []

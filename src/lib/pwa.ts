@@ -2,13 +2,30 @@
 
 export const swSupported = typeof navigator !== "undefined" && "serviceWorker" in navigator
 
+/**
+ * Registers the worker, then has it cache every file of this release so all screens
+ * open offline, including ones not visited yet.
+ */
 export function registerServiceWorker() {
   if (!swSupported) return
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch((err) => {
-      console.warn("Service worker registration failed", err)
-    })
+    navigator.serviceWorker
+      .register("/sw.js", { scope: "/" })
+      .then(() => postToServiceWorker({ type: "PRECACHE" }))
+      .catch((err) => {
+        console.warn("Service worker registration failed", err)
+      })
   })
+}
+
+/** Lets the worker send saved items once the connection returns, even with the app closed (Chromium only). */
+export async function registerBackgroundSync(tag: "outbox" | "mutations") {
+  if (!swSupported) return
+  try {
+    const registration = await navigator.serviceWorker.ready
+    const sync = (registration as ServiceWorkerRegistration & { sync?: { register: (tag: string) => Promise<void> } }).sync
+    await sync?.register(tag)
+  } catch {}
 }
 
 /** Posts to the active worker once it is ready; a no-op without one. */
@@ -28,6 +45,7 @@ export type WorkerMessage =
   | { type: "OUTBOX"; event: "synced" | "failed" | "changed"; kind?: "check-in" | "check-out"; message?: string }
   | { type: "PUSH"; path: string; url: string; title?: string; body?: string; popup?: boolean }
   | { type: "NAVIGATE"; url: string }
+  | { type: "QUEUE"; event: "changed" }
 
 interface InstallPromptEvent extends Event {
   prompt: () => Promise<void>

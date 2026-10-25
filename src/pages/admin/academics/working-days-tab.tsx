@@ -384,6 +384,7 @@ function MarkWeekendsDialog({
       invalidate: INVALIDATE,
       toastError: false,
       onError: errors.capture,
+      onQueued: () => setResult(null),
       onSuccess: (data) => setResult(data),
     }
   )

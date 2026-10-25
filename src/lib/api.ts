@@ -1,3 +1,6 @@
+import { withLock } from "./locks"
+import { canQueue, enqueueMutation, getQueueUser } from "./offline-queue"
+
 const CONFIGURED_BASE = (import.meta.env.VITE_API_BASE_URL ?? "/api").replace(/\/$/, "")
 
 /**
@@ -76,6 +79,14 @@ export class ApiError extends Error {
   }
 }
 
+/** Thrown when a request never got an answer (offline, dropped or timed out). */
+export class NetworkError extends Error {
+  constructor(message = "Could not reach the server. Check your connection and try again.") {
+    super(message)
+    this.name = "NetworkError"
+  }
+}
+
 /** Human readable message for any thrown value. */
 export function errorMessage(err: unknown): string {
   if (err instanceof ApiError) return err.detail
@@ -113,18 +124,56 @@ export function toFormData(fields: Record<string, unknown>): FormData {
   return form
 }
 
-type RequestOptions = Omit<RequestInit, "body"> & { body?: unknown; skipRefresh?: boolean; params?: QueryParams }
+type RequestOptions = Omit<RequestInit, "body"> & {
+  body?: unknown
+  skipRefresh?: boolean
+  params?: QueryParams
+  /** Gives up after this long, so a connection that is up but dead counts as offline. */
+  timeoutMs?: number
+  /** Send now or fail; never save the change for later (used when replaying saved changes). */
+  noQueue?: boolean
+}
 
-let refreshing: Promise<boolean> | null = null
+/** What a mutation resolves to. `queued` means it was saved on this device and will be sent once online. */
+export interface ApiResult<T> {
+  message: string
+  data: T
+  queued?: boolean
+}
 
-async function refreshSession(): Promise<boolean> {
-  refreshing ??= fetch(`${API_BASE}/auth/refresh/`, { method: "POST", credentials: "include" })
-    .then((res) => res.ok)
-    .catch(() => false)
-    .finally(() => {
-      refreshing = null
-    })
+export const QUEUED_MESSAGE = "Saved on this device. It syncs automatically when you are back online."
+
+type RefreshOutcome = "ok" | "expired" | "network"
+
+let refreshing: Promise<RefreshOutcome> | null = null
+
+/**
+ * Rotates the access cookie with the refresh cookie. The refresh token is single use,
+ * so tabs and the service worker take turns (see withLock); one that waited retries
+ * with the cookie the other just received. A network failure is not an expired session.
+ */
+async function refreshSession(): Promise<RefreshOutcome> {
+  refreshing ??= withLock("sp-auth-refresh", () =>
+    fetch(`${API_BASE}/auth/refresh/`, { method: "POST", credentials: "include" }).then(
+      (res): RefreshOutcome => (res.ok ? "ok" : "expired"),
+      (): RefreshOutcome => "network"
+    )
+  ).finally(() => {
+    refreshing = null
+  })
   return refreshing
+}
+
+function isOffline() {
+  return typeof navigator !== "undefined" && navigator.onLine === false
+}
+
+function send(url: string, init: RequestInit, timeoutMs?: number) {
+  const signal = timeoutMs ? AbortSignal.timeout(timeoutMs) : init.signal
+  return fetch(url, { ...init, signal }).catch((err: unknown) => {
+    if (init.signal?.aborted) throw err
+    throw new NetworkError()
+  })
 }
 
 /** Listeners notified when the session can no longer be refreshed. */
@@ -153,25 +202,55 @@ function checkMaintenance(status: number, payload: ApiEnvelope<unknown> | null) 
  * Full envelope request: resolves to `{message, data}` so callers can surface the
  * server message. On a 401 the access cookie is rotated once via the refresh cookie
  * and the request retried.
+ *
+ * A change (not a read) made without internet, or whose request never reaches the
+ * server, is saved on the device and resolves with `queued: true` and no data; it is
+ * sent in order once the connection is back (see offline-queue.ts). AI features and
+ * sign-in are never saved for later.
  */
 export async function request<T>(
   path: string,
-  { body, skipRefresh, headers, params, ...init }: RequestOptions = {}
-): Promise<{ message: string; data: T }> {
+  { body, skipRefresh, headers, params, timeoutMs, noQueue, ...init }: RequestOptions = {}
+): Promise<ApiResult<T>> {
+  const method = (init.method ?? "GET").toUpperCase()
+  const userId = getQueueUser()
+  const queueable = !noQueue && !skipRefresh && userId !== null && canQueue(method, path)
+  const queue = async (): Promise<ApiResult<T>> => {
+    await enqueueMutation({ userId: userId!, method, path, params, body })
+    return { message: QUEUED_MESSAGE, data: null as T, queued: true }
+  }
+
+  if (queueable && isOffline()) return queue()
+
   const isForm = body instanceof FormData
-  const res = await fetch(`${API_BASE}/${path.replace(/^\//, "")}${toQuery(params)}`, {
-    ...init,
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-      ...(body !== undefined && !isForm ? { "Content-Type": "application/json" } : {}),
-      ...headers,
-    },
-    body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
-  })
+  let res: Response
+  try {
+    res = await send(
+      `${API_BASE}/${path.replace(/^\//, "")}${toQuery(params)}`,
+      {
+        ...init,
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+          ...(body !== undefined && !isForm ? { "Content-Type": "application/json" } : {}),
+          ...headers,
+        },
+        body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
+      },
+      timeoutMs
+    )
+  } catch (err) {
+    if (queueable && err instanceof NetworkError) return queue()
+    throw err
+  }
 
   if (res.status === 401 && !skipRefresh) {
-    if (await refreshSession()) return request<T>(path, { body, headers, params, ...init, skipRefresh: true })
+    const outcome = await refreshSession()
+    if (outcome === "ok") return request<T>(path, { body, headers, params, timeoutMs, noQueue, ...init, skipRefresh: true })
+    if (outcome === "network") {
+      if (queueable) return queue()
+      throw new NetworkError()
+    }
     sessionExpiredListeners.forEach((fn) => fn())
   }
 
@@ -189,7 +268,7 @@ export async function request<T>(
   return { message: payload.message, data: payload.data as T }
 }
 
-export async function api<T>(path: string, options?: RequestOptions): Promise<T> {
+export async function api<T>(path: string, options?: Omit<RequestOptions, "noQueue">): Promise<T> {
   return (await request<T>(path, options)).data
 }
 
@@ -198,7 +277,9 @@ export async function downloadFile(path: string, params?: QueryParams, fallbackN
   const res = await fetch(`${API_BASE}/${path.replace(/^\//, "")}${toQuery(params)}`, { credentials: "include" })
 
   if (res.status === 401 && !retried) {
-    if (await refreshSession()) return downloadFile(path, params, fallbackName, true)
+    const outcome = await refreshSession()
+    if (outcome === "ok") return downloadFile(path, params, fallbackName, true)
+    if (outcome === "network") throw new NetworkError()
     sessionExpiredListeners.forEach((fn) => fn())
   }
 

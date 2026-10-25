@@ -323,6 +323,7 @@ function BulkClassSectionsDialog({
       toastSuccess: false,
       toastError: false,
       onError: errors.capture,
+      onQueued: () => setOutcome(null),
       onSuccess: (data) => {
         const created = (data.created ?? []) as unknown as CreatedCombo[]
         const failed = (data.failed ?? []) as BulkFailure[]

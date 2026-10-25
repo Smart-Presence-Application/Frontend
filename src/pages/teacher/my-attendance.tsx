@@ -21,7 +21,9 @@ import { useUrlState } from "@/hooks/use-url-state"
 import { ApiError, errorMessage } from "@/lib/api"
 import { reportsApi, teacherAttendanceApi } from "@/lib/endpoints"
 import { formatDate, formatNumber, formatTime, isoDate } from "@/lib/format"
-import { addToOutbox, outboxSupported, removeFromOutbox, requestOutboxSync, type OutboxItem } from "@/lib/outbox"
+import { isTransient } from "@/lib/offline-queue"
+import { addToOutbox, outboxSupported, removeFromOutbox, type OutboxItem } from "@/lib/outbox"
+import { requestSync } from "@/lib/sync"
 import type { TeacherAttendanceRecord } from "@/lib/types"
 import { DayTypePill, PhotoPanel, PhotoThumb, TeacherStatusPill } from "../admin/teacher-attendance/bits"
 import { durationLabel } from "../admin/teacher-attendance/utils"
@@ -51,7 +53,7 @@ function stepOf(today: TeacherAttendanceRecord | null | undefined, queued: Retur
   return "done"
 }
 
-/** A teacher's own check-ins. Without internet, or when the request never reaches the server, the photo is queued on the device and the service worker uploads it later. The Excel export follows the dates picked in the history filter. */
+/** A teacher's own check-ins. Without internet, or when the request never reaches the server, the photo is queued on the device and uploaded as soon as the connection is back (by the app, or by the service worker if the app is closed). The Excel export follows the dates picked in the history filter. */
 export default function MyAttendancePage() {
   const [capture, setCapture] = useState<CaptureKind | null>(null)
   const [captureError, setCaptureError] = useState<string | null>(null)
@@ -67,13 +69,15 @@ export default function MyAttendancePage() {
     async ({ kind, image, at }: { kind: CaptureKind; image: Blob; at: string }) => {
       const queue = async () => {
         await addToOutbox({ kind: kind === "in" ? "check-in" : "check-out", image, capturedAt: at, userId: user!.id })
+        requestSync()
         return { message: QUEUED_MESSAGE, data: null }
       }
       if (!navigator.onLine && outboxSupported) return queue()
       try {
         return await (kind === "in" ? teacherAttendanceApi.checkIn(image, at) : teacherAttendanceApi.checkOut(image, at))
       } catch (err) {
-        if (!(err instanceof ApiError) && outboxSupported) return queue()
+        // No answer, or the server is down or busy: keep the photo and upload it later.
+        if ((!(err instanceof ApiError) || isTransient(err.status)) && outboxSupported) return queue()
         throw err
       }
     },
@@ -273,7 +277,7 @@ function QueuedCard({ items }: { items: OutboxItem[] }) {
         </CardDescription>
         {online && (
           <CardAction>
-            <Button variant="outline" size="sm" onClick={() => void requestOutboxSync()}>
+            <Button variant="outline" size="sm" onClick={requestSync}>
               Retry now
             </Button>
           </CardAction>
