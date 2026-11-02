@@ -23,9 +23,25 @@ export function Logo({ className, inverted, link = true }: LogoProps) {
         draggable={false}
         className={cn(img, !inverted && "hidden dark:block")}
       />
+      <svg
+        aria-hidden
+        viewBox="0 0 200 12"
+        preserveAspectRatio="none"
+        className="logo-underline pointer-events-none absolute top-[92%] left-[3%] h-[28%] w-[94%] overflow-visible text-primary"
+      >
+        <path
+          d="M2 9 C 60 2, 140 2, 198 8"
+          pathLength={1}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
     </>
   )
-  const classes = cn("inline-flex h-8 shrink-0 items-center", className)
+  const classes = cn("group relative inline-flex h-8 shrink-0 items-center", className)
   if (!link) {
     return (
       <span role="img" aria-label="SmartPresence" className={classes}>
