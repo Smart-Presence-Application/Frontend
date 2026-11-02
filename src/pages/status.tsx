@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 
 const SERVICES: { key: keyof ServicesStatus["services"]; name: string; text: string; icon: LucideIcon }[] = [
   { key: "backend", name: "Backend service", text: "The API behind the website, the apps and every portal.", icon: Server },
-  { key: "postgres", name: "PostgreSQL database", text: "Schools, people, attendance, notices and reports.", icon: Database },
+  { key: "postgres", name: "Database", text: "Schools, people, attendance, notices and reports.", icon: Database },
   { key: "ai_service", name: "AI service", text: "Face recognition for classroom attendance and teacher check-in.", icon: BrainCircuit },
 ]
 
