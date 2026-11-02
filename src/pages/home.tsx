@@ -4,8 +4,10 @@ import { useLocation } from "react-router"
 import { SectionSkeleton } from "@/components/common/page-loader"
 import { Seo } from "@/components/common/seo"
 import { Hero } from "@/components/landing/hero"
+import { Onboard } from "@/components/landing/onboard"
 
 const About = lazy(() => import("@/components/landing/about").then((m) => ({ default: m.About })))
+const VideoTour = lazy(() => import("@/components/landing/video").then((m) => ({ default: m.VideoTour })))
 const Demo = lazy(() => import("@/components/landing/demo").then((m) => ({ default: m.Demo })))
 const Features = lazy(() => import("@/components/landing/features").then((m) => ({ default: m.Features })))
 const Partners = lazy(() => import("@/components/landing/partners").then((m) => ({ default: m.Partners })))
@@ -35,6 +37,12 @@ export default function HomePage() {
 
       <div id="home">
         <Hero />
+      </div>
+      <Onboard />
+      <div id="video">
+        <Suspense fallback={<SectionSkeleton className="min-h-[700px]" />}>
+          <VideoTour />
+        </Suspense>
       </div>
       <div id="about">
         <Suspense fallback={<SectionSkeleton />}>

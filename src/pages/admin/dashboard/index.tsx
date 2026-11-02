@@ -183,13 +183,13 @@ export default function DashboardPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((s, i) => (
           <StatCard key={s.label} {...s} index={i} loading={counts.isLoading} />
         ))}
       </div>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
         {attention.map((a, i) => (
           <motion.div
             key={a.label}
@@ -219,7 +219,7 @@ export default function DashboardPage() {
 
       <Suspense
         fallback={
-          <div className="mt-6 grid gap-6 lg:grid-cols-5">
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
             <Skeleton className="h-80 rounded-2xl lg:col-span-3" />
             <Skeleton className="h-80 rounded-2xl lg:col-span-2" />
           </div>
@@ -228,7 +228,7 @@ export default function DashboardPage() {
         <DashboardCharts counts={c} variant={isSchool ? "school" : "super"} sessions={recentSessions.data?.results} loading={counts.isLoading || recentSessions.isLoading} />
       </Suspense>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-5">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
         {isSchool && (
           <Card className="lg:col-span-3">
             <CardHeader>
@@ -244,7 +244,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="px-0">
               {recentSessions.isLoading ? (
-                <div className="grid gap-3 px-4">
+                <div className="grid grid-cols-1 gap-3 px-4">
                   {Array.from({ length: 5 }, (_, i) => (
                     <Skeleton key={i} className="h-12" />
                   ))}
@@ -290,7 +290,7 @@ export default function DashboardPage() {
           </Card>
         )}
 
-        <div className={isSchool ? "grid content-start gap-6 lg:col-span-2" : "grid content-start gap-6 md:grid-cols-2 lg:col-span-5"}>
+        <div className={isSchool ? "grid grid-cols-1 content-start gap-6 lg:col-span-2" : "grid grid-cols-1 content-start gap-6 md:grid-cols-2 lg:col-span-5"}>
           <Card>
             <CardHeader>
               <CardTitle className="font-semibold">{isSchool ? "Newest teachers" : "Newest schools"}</CardTitle>
@@ -305,7 +305,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="px-0">
               {recent.isLoading ? (
-                <div className="grid gap-3 px-4">
+                <div className="grid grid-cols-1 gap-3 px-4">
                   {Array.from({ length: 5 }, (_, i) => (
                     <Skeleton key={i} className="h-12" />
                   ))}
@@ -336,7 +336,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { to: panelPath("/admin/attendance"), icon: ClipboardCheck, title: "Take attendance", text: "Upload a classroom photo" },
           { to: panelPath("/admin/faces"), icon: ScanFace, title: "Register faces", text: "Enrol student face data" },

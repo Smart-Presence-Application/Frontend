@@ -6,6 +6,7 @@ import type {
   AttendanceAlert,
   AttendanceSession,
   AttendanceSessionDetail,
+  BulkDeleteResult,
   BulkResult,
   SchoolCalendar,
   ChildAttendance,
@@ -71,6 +72,7 @@ export const schoolsApi = {
   create: (body: Body) => post<SchoolDetail>("schools/", body),
   update: (id: number, body: Body | FormData) => patch<SchoolDetail>(`schools/${id}/`, body),
   remove: (id: number) => del(`schools/${id}/`),
+  bulkRemove: (ids: number[]) => post<BulkDeleteResult>("schools/bulk-delete/", { ids }),
   setStatus: (id: number, status: "ACTIVE" | "INACTIVE") => patch<SchoolDetail>(`schools/${id}/status/`, { status }),
   me: () => api<SchoolDetail>("schools/me/"),
   updateMyLogo: (file: File) => patch<SchoolDetail>("schools/me/logo/", toFormData({ logo: file })),
@@ -133,6 +135,7 @@ export const teachersApi = {
     post<{ created: number; teachers: Teacher[] }>("teachers/bulk-upload/", toFormData({ file, school })),
   update: (id: number, body: Body) => patch<Teacher>(`teachers/${id}/`, body),
   remove: (id: number) => del(`teachers/${id}/`),
+  bulkRemove: (ids: number[]) => post<BulkDeleteResult>("teachers/bulk-delete/", { ids }),
   setStatus: (id: number, is_active: boolean) => patch<Teacher>(`teachers/${id}/status/`, { is_active }),
   assignSection: (id: number, class_section: number) => post<Teacher>(`teachers/${id}/class-section/`, { class_section }),
   revokeSection: (id: number) => del<Teacher>(`teachers/${id}/class-section/`),
@@ -156,6 +159,7 @@ export const studentsApi = {
     ),
   update: (id: number, body: Body) => patch<Student>(`students/${id}/`, body),
   remove: (id: number) => del(`students/${id}/`),
+  bulkRemove: (ids: number[]) => post<BulkDeleteResult>("students/bulk-delete/", { ids }),
   setImage: (id: number, file: File) =>
     patch<StudentWithFaceJob>(`students/${id}/image/`, toFormData({ profile_image: file })),
   promote: (body: { student_ids: number[]; to_class_section: number | null; roll_numbers: "keep" | "renumber" | "alphabetical" }) =>
@@ -178,6 +182,7 @@ export const parentsApi = {
   update: (id: number, body: Body) => patch<Parent>(`parents/${id}/`, body),
   resetPassword: (id: number) => post<Parent>(`parents/${id}/reset-password/`),
   setPassword: (id: number, body: Body) => post<Parent>(`parents/${id}/change-password/`, body),
+  bulkRemove: (ids: number[]) => post<BulkDeleteResult>("parents/bulk-delete/", { ids }),
   unlinkStudent: (id: number, studentPk: number) =>
     del<{ parent_deleted: boolean }>(`parents/${id}/students/${studentPk}/`),
 }
@@ -301,8 +306,22 @@ export interface MaintenanceSettings {
 }
 
 /** Maintenance mode and activity logs. `status` is public and works during maintenance; `logs` is Super Admin only. */
+export interface ServiceCheck {
+  ok: boolean | null
+  latency_ms?: number
+  error?: string
+  model_loaded?: boolean
+}
+
+export interface ServicesStatus {
+  services: { backend: ServiceCheck; postgres: ServiceCheck; ai_service: ServiceCheck; mongodb: ServiceCheck }
+  maintenance: { enabled: boolean; message: string; updated_at: string | null } | null
+  checked_at: string
+}
+
 export const systemApi = {
   status: () => api<{ maintenance: boolean; message: string }>("system/status/", { skipRefresh: true }),
+  services: () => api<ServicesStatus>("system/services/", { skipRefresh: true }),
   maintenance: () => api<MaintenanceSettings>("system/maintenance/"),
   setMaintenance: (body: { is_enabled?: boolean; message?: string }) => patch<MaintenanceSettings>("system/maintenance/", body),
   logs: (params?: QueryParams) => api<Paginated<ActivityLog>>("system/logs/", { params }),

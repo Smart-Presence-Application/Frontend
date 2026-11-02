@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 /** The public website: it never needs to know who is signed in. */
-const PUBLIC_PATHS = new Set(["/", "/privacy-policy"])
+const PUBLIC_PATHS = new Set(["/", "/privacy-policy", "/status", "/docs"])
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function isPublicPath(pathname: string) {

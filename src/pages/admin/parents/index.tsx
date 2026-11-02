@@ -2,6 +2,7 @@ import { useState } from "react"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { HeartHandshake, KeyRound, LockKeyhole, MoreHorizontal, Pencil, Plus, ShieldCheck, Unlink, Upload, X } from "lucide-react"
 
+import { BulkDeleteBar } from "@/components/admin/bulk-delete"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { DataTable, type Column } from "@/components/admin/data-table"
 import { PageHeader } from "@/components/admin/page-header"
@@ -20,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { usePanel } from "@/context/panel"
 import { useApiMutation } from "@/hooks/use-api-mutation"
+import { usePageSelection } from "@/hooks/use-page-selection"
 import { useUrlState } from "@/hooks/use-url-state"
 import { parentsApi } from "@/lib/endpoints"
 import { formatDateTime, timeAgo } from "@/lib/format"
@@ -66,6 +68,8 @@ export default function ParentsPage() {
     queryFn: () => parentsApi.list(params),
     placeholderData: keepPreviousData,
   })
+
+  const selection = usePageSelection()
 
   const resetMutation = useApiMutation((id: number) => parentsApi.resetPassword(id), {
     invalidate: [["parents"], ["parent"]],
@@ -231,10 +235,21 @@ export default function ParentsPage() {
           )
         }
       >
+        <BulkDeleteBar
+          selected={selection.selected}
+          onSelectedChange={selection.setSelected}
+          noun={["parent", "parents"]}
+          remove={parentsApi.bulkRemove}
+          invalidate={[["parents"], ["parent"], ["dashboard"]]}
+          description="The selected parent accounts are deleted and can no longer sign in. A parent who also has children you cannot manage keeps their account; only your students are unlinked from it."
+        />
         <DataTable
           columns={columns}
           rows={query.data?.results}
           rowKey={(p) => p.id}
+          selectable
+          selected={selection.selected}
+          onSelectedChange={selection.setSelected}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.refetch}

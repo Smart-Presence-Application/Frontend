@@ -2,7 +2,7 @@ import { NavLink, useLocation } from "react-router"
 import { ChevronsLeft, Layers, School, UsersRound } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 
-import { Logo } from "@/components/common/logo"
+import { Logo, LogoMark } from "@/components/common/logo"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
@@ -169,9 +169,9 @@ export function DesktopSidebar({ collapsed, onToggle, badges }: { collapsed: boo
     >
       <div className={cn("flex h-16 shrink-0 items-center border-b px-5", collapsed && "justify-center px-0")}>
         {collapsed ? (
-          <span className="flex size-9 items-center justify-center rounded-xl bg-primary font-logo text-2xl font-bold text-primary-foreground">S</span>
+          <LogoMark className="size-11" />
         ) : (
-          <Logo className="text-[1.7rem]" />
+          <Logo className="h-8" />
         )}
       </div>
       <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">

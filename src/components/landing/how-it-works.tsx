@@ -1,7 +1,9 @@
 import { motion } from "motion/react"
-import { BellRing, Camera, School, UserPlus, type LucideIcon } from "lucide-react"
+import { ArrowRight, BellRing, Camera, MessageSquare, School, UserPlus, type LucideIcon } from "lucide-react"
 
-import { SectionHeading } from "@/components/common/reveal"
+import { ContactDialog } from "@/components/common/contact-dialog"
+import { Reveal, SectionHeading } from "@/components/common/reveal"
+import { Button } from "@/components/ui/button"
 
 const STEPS: { icon: LucideIcon; title: string; text: string; detail: string }[] = [
   {
@@ -78,6 +80,16 @@ export function HowItWorks() {
             ))}
           </ol>
         </div>
+
+        <Reveal className="mt-12 flex flex-col items-center gap-3 text-center">
+          <p className="text-muted-foreground">Step 1 starts with a message. We set up your school with you.</p>
+          <ContactDialog>
+            <Button size="lg" className="group h-12 rounded-full px-6 text-base shadow-md shadow-primary/25">
+              <MessageSquare /> Contact us
+              <ArrowRight className="transition-transform group-hover:translate-x-1" />
+            </Button>
+          </ContactDialog>
+        </Reveal>
       </div>
     </section>
   )

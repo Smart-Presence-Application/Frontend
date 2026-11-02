@@ -37,7 +37,7 @@ export function Navbar() {
       )}
     >
       <nav aria-label="Main" className="container-page flex h-16 items-center justify-between gap-4 md:h-18">
-        <Logo />
+        <Logo className="h-7 sm:h-8 md:h-9" />
 
         <ul className="hidden items-center gap-1 lg:flex">
           {NAV_LINKS.map((link) => {
@@ -52,7 +52,7 @@ export function Navbar() {
                   }}
                   aria-current={isActive ? "true" : undefined}
                   className={cn(
-                    "relative rounded-full px-3.5 py-2 text-sm font-medium transition-colors",
+                    "relative rounded-full px-2.5 py-2 text-sm font-medium whitespace-nowrap transition-colors xl:px-3.5",
                     isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -76,8 +76,8 @@ export function Navbar() {
             Install app
           </InstallButton>
           <ContactDialog>
-            <Button variant="outline" size="lg" className="h-10 rounded-full px-4">
-              <MessageSquare /> Contact us
+            <Button variant="outline" size="lg" className="size-10 rounded-full xl:w-auto xl:px-4" aria-label="Contact us">
+              <MessageSquare /> <span className="hidden xl:inline">Contact us</span>
             </Button>
           </ContactDialog>
           <Button asChild size="lg" className="h-10 rounded-full px-5 shadow-md shadow-primary/25">
@@ -99,7 +99,7 @@ export function Navbar() {
           <SheetContent side="right" className="w-[85vw] max-w-sm">
             <SheetHeader>
               <SheetTitle className="sr-only">Navigation</SheetTitle>
-              <Logo />
+              <Logo className="h-8" />
             </SheetHeader>
             <ul className="flex flex-col gap-1 px-4">
               {NAV_LINKS.map((link, i) => (

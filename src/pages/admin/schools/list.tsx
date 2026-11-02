@@ -3,6 +3,7 @@ import { useNavigate } from "react-router"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { Eye, MoreHorizontal, Plus, Power, PowerOff, School, Trash2 } from "lucide-react"
 
+import { BulkDeleteBar } from "@/components/admin/bulk-delete"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { DataTable, type Column } from "@/components/admin/data-table"
 import { PageHeader } from "@/components/admin/page-header"
@@ -18,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useApiMutation } from "@/hooks/use-api-mutation"
+import { usePageSelection } from "@/hooks/use-page-selection"
 import { useUrlState } from "@/hooks/use-url-state"
 import { schoolsApi } from "@/lib/endpoints"
 import type { SchoolListItem } from "@/lib/types"
@@ -56,6 +58,8 @@ export default function SchoolsPage() {
     (s: SchoolListItem) => schoolsApi.setStatus(s.id, s.status === "ACTIVE" ? "INACTIVE" : "ACTIVE"),
     { invalidate: [["schools"], ["school"], ["dashboard"]], onSuccess: () => setStatusTarget(null) }
   )
+  const selection = usePageSelection()
+
   const deleteMutation = useApiMutation((id: number) => schoolsApi.remove(id), {
     invalidate: [["schools"], ["dashboard"]],
     onSuccess: () => setDeleteTarget(null),
@@ -182,10 +186,21 @@ export default function SchoolsPage() {
           )
         }
       >
+        <BulkDeleteBar
+          selected={selection.selected}
+          onSelectedChange={selection.setSelected}
+          noun={["school", "schools"]}
+          remove={schoolsApi.bulkRemove}
+          invalidate={[["schools"], ["dashboard"]]}
+          description="This permanently removes the selected schools and their admin accounts. Schools that still have academic years, teachers, students or other records cannot be deleted and stay selected."
+        />
         <DataTable
           columns={columns}
           rows={query.data?.results}
           rowKey={(s) => s.id}
+          selectable
+          selected={selection.selected}
+          onSelectedChange={selection.setSelected}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.refetch}

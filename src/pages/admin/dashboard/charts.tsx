@@ -66,7 +66,7 @@ export default function DashboardCharts({
   const activePct = ringTotal ? Math.round(((ringValue ?? 0) / ringTotal) * 100) : 0
 
   return (
-    <div className="mt-6 grid gap-6 lg:grid-cols-5">
+    <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
       {isSchool && (
         <Card className="lg:col-span-3">
           <CardHeader>
@@ -98,7 +98,7 @@ export default function DashboardCharts({
         </Card>
       )}
 
-      <div className={isSchool ? "grid gap-6 lg:col-span-2" : "grid gap-6 md:grid-cols-2 lg:col-span-5"}>
+      <div className={isSchool ? "grid grid-cols-1 gap-6 lg:col-span-2" : "grid grid-cols-1 gap-6 md:grid-cols-2 lg:col-span-5"}>
         <Card>
           <CardHeader>
             <CardTitle className="font-semibold">People on the platform</CardTitle>

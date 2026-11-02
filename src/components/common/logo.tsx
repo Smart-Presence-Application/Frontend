@@ -3,32 +3,66 @@ import { cn } from "@/lib/utils"
 
 interface LogoProps {
   className?: string
+  /** Always use the white wordmark, for dark backgrounds in either theme. */
   inverted?: boolean
+  /** Wraps the wordmark in a link home; off where it is part of a heading. */
+  link?: boolean
 }
 
-/** `inverted` uses light text for dark backgrounds. */
-export function Logo({ className, inverted }: LogoProps) {
-  return (
-    <Link
-      to="/"
-      aria-label="SmartPresence home"
-      className={cn(
-        "group inline-flex items-baseline font-logo text-[1.9rem] leading-none font-bold tracking-tight select-none",
-        className
-      )}
-    >
-      <span className={cn("transition-colors", inverted ? "text-white" : "text-foreground")}>Smart</span>
-      <span className="relative text-primary">
-        Presence
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 120 10"
-          preserveAspectRatio="none"
-          className="absolute -bottom-1.5 left-0 h-2 w-full text-primary/60 transition-all duration-500 [stroke-dasharray:140] [stroke-dashoffset:140] group-hover:[stroke-dashoffset:0]"
-        >
-          <path d="M2 7 C 30 2, 70 2, 118 6" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-        </svg>
+/** The SmartPresence wordmark: black in the light theme, white in the dark one. Size it with a height class. */
+export function Logo({ className, inverted, link = true }: LogoProps) {
+  const img = "h-full w-auto select-none"
+  const wordmark = (
+    <>
+      {!inverted && <img src="/brand/smartpresence-logo.png" alt="" width={1200} height={214} draggable={false} className={cn(img, "dark:hidden")} />}
+      <img
+        src="/brand/smartpresence-logo-white.png"
+        alt=""
+        width={1200}
+        height={214}
+        draggable={false}
+        className={cn(img, !inverted && "hidden dark:block")}
+      />
+    </>
+  )
+  const classes = cn("inline-flex h-8 shrink-0 items-center", className)
+  if (!link) {
+    return (
+      <span role="img" aria-label="SmartPresence" className={classes}>
+        {wordmark}
       </span>
+    )
+  }
+  return (
+    <Link to="/" aria-label="SmartPresence home" className={classes}>
+      {wordmark}
+    </Link>
+  )
+}
+
+interface LogoMarkProps {
+  className?: string
+  /** Wraps the mark in a link home; off where it sits inside another control. */
+  link?: boolean
+}
+
+/** The square logo mark, for spaces too tight for the wordmark (mobile, collapsed sidebar). */
+export function LogoMark({ className, link = true }: LogoMarkProps) {
+  const size = cn("size-10 shrink-0", className)
+  const img = (
+    <img
+      src="/icons/icon-192.png"
+      alt={link ? "" : "SmartPresence"}
+      width={192}
+      height={192}
+      draggable={false}
+      className={cn("select-none", link ? "size-full" : size)}
+    />
+  )
+  if (!link) return img
+  return (
+    <Link to="/" aria-label="SmartPresence home" className={cn("inline-flex", size)}>
+      {img}
     </Link>
   )
 }

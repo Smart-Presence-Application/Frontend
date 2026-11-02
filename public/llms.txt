@@ -7,5 +7,7 @@ The signed-in portals for super admins, school admins, teachers and parents are 
 ## Pages
 
 - [Home](https://www.smartpresence.tech/): what SmartPresence does, how it works, features and FAQ
+- [Docs](https://www.smartpresence.tech/docs): how a school is onboarded, step by step, and what each role can do
+- [Status](https://www.smartpresence.tech/status): live status of the platform and any scheduled maintenance
 - [Privacy policy](https://www.smartpresence.tech/privacy-policy): what data is collected and how it is used
 - [Sign in](https://www.smartpresence.tech/login): login for schools, teachers and parents

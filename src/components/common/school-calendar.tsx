@@ -92,7 +92,7 @@ export function SchoolCalendarCard({ className }: { className?: string }) {
         )}
       </CardHeader>
 
-      <CardContent className="grid gap-4">
+      <CardContent className="grid grid-cols-1 gap-4">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon-sm" onClick={() => shift(-1)} aria-label="Previous month">
             <ChevronLeft />
@@ -171,7 +171,7 @@ export function SchoolCalendarCard({ className }: { className?: string }) {
         </ul>
 
         {highlights.length > 0 && (
-          <ul className="grid gap-1.5 border-t pt-3">
+          <ul className="grid grid-cols-1 gap-1.5 border-t pt-3">
             {highlights.map((d) => (
               <li key={d.date} className="flex items-center gap-3 text-sm">
                 <span className={cn("size-2 shrink-0 rounded-full", DAY_STYLE[d.day_type].dot)} />

@@ -18,7 +18,7 @@ const SHELL = `sp-shell-${VERSION}`
 const ASSETS = `sp-assets-${VERSION}`
 const DATA = "sp-data"
 const MEDIA = "sp-media"
-const SHELL_FILES = ["/", "/manifest.webmanifest", "/favicon.svg", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/badge-96.png"]
+const SHELL_FILES = ["/", "/manifest.webmanifest", "/favicon.ico", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/badge-96.png"]
 
 /** API reads that must never come from cache because they change the session. */
 const NEVER_CACHE = ["/api/auth/login/", "/api/auth/logout/", "/api/auth/refresh/", "/api/parents/login/"]
@@ -139,7 +139,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(navigation(request))
   } else if (url.pathname.startsWith("/assets/")) {
     event.respondWith(cacheFirst(request, ASSETS))
-  } else if (url.pathname.startsWith("/icons/") || url.pathname === "/manifest.webmanifest" || url.pathname === "/favicon.svg") {
+  } else if (url.pathname.startsWith("/icons/") || url.pathname === "/manifest.webmanifest" || url.pathname === "/favicon.ico") {
     event.respondWith(staleWhileRevalidate(request, SHELL))
   }
 })

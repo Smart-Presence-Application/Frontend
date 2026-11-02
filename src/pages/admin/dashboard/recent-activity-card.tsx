@@ -35,7 +35,7 @@ export function RecentActivityCard() {
       </CardHeader>
       <CardContent className="px-0">
         {logs.isLoading ? (
-          <div className="grid gap-3 px-4">
+          <div className="grid grid-cols-1 gap-3 px-4">
             {Array.from({ length: 5 }, (_, i) => (
               <Skeleton key={i} className="h-12" />
             ))}

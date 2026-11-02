@@ -176,7 +176,7 @@ function Shell() {
           <SheetHeader className="h-16 justify-center border-b px-5">
             <SheetTitle asChild>
               <div>
-                <Logo className="text-[1.7rem]" />
+                <Logo className="h-8" />
               </div>
             </SheetTitle>
             <SheetDescription className="sr-only">Panel navigation</SheetDescription>

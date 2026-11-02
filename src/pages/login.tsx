@@ -4,6 +4,7 @@ import { ArrowLeft, Eye, EyeOff, LoaderCircle, LogIn, Mail, Phone, ScanFace, Use
 import { motion } from "motion/react"
 import { toast } from "sonner"
 
+import { Logo } from "@/components/common/logo"
 import { PageLoader } from "@/components/common/page-loader"
 import { Seo } from "@/components/common/seo"
 import { Button } from "@/components/ui/button"
@@ -66,7 +67,7 @@ function LoginScreen() {
               <ArrowLeft className="size-4" /> Back to home
             </Link>
             <h1 className="mt-6 text-5xl font-bold tracking-tight text-balance">
-              Welcome back to <span className="font-logo text-6xl text-primary">SmartPresence</span>
+              Welcome back to <Logo link={false} className="mt-4 flex h-16 w-fit xl:h-20" />
             </h1>
             <p className="mt-4 max-w-md text-lg text-muted-foreground">
               Staff sign in with their school email. Parents use the mobile number registered with the school.
@@ -94,6 +95,7 @@ function LoginScreen() {
           >
             <div className="rounded-3xl border bg-card/95 p-6 shadow-2xl shadow-primary/10 backdrop-blur sm:p-8">
               <div className="mb-6 text-center lg:hidden">
+                <Logo className="mx-auto mb-5 flex h-9 w-fit" />
                 <h1 className="text-2xl font-bold">Sign in</h1>
                 <p className="mt-1 text-sm text-muted-foreground">Access your SmartPresence portal</p>
               </div>

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { Eye, GraduationCap, MoreHorizontal, Plus, Upload } from "lucide-react"
 
+import { BulkDeleteBar } from "@/components/admin/bulk-delete"
 import { DataTable, type Column } from "@/components/admin/data-table"
 import { PageHeader } from "@/components/admin/page-header"
 import { Pagination } from "@/components/admin/pagination"
@@ -11,6 +12,7 @@ import { EmptyState } from "@/components/admin/states"
 import { ActiveBadge, ClearFiltersButton, FilterSelect, Panel, PersonCell, Pill, SearchInput } from "@/components/admin/ui-bits"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { usePageSelection } from "@/hooks/use-page-selection"
 import { useUrlState } from "@/hooks/use-url-state"
 import { teachersApi } from "@/lib/endpoints"
 import { classSectionLabel, formatDate } from "@/lib/format"
@@ -35,6 +37,7 @@ export default function TeachersPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [bulkOpen, setBulkOpen] = useState(false)
   const actions = useTeacherActions()
+  const selection = usePageSelection()
 
   const school = Number(url.get("school")) || null
   const classSection = Number(url.get("class_section")) || null
@@ -190,10 +193,21 @@ export default function TeachersPage() {
           )
         }
       >
+        <BulkDeleteBar
+          selected={selection.selected}
+          onSelectedChange={selection.setSelected}
+          noun={["teacher", "teachers"]}
+          remove={teachersApi.bulkRemove}
+          invalidate={[["teachers"], ["teacher"], ["dashboard"]]}
+          description="This permanently removes the selected teachers and their sign-in accounts. Teachers referenced by other records cannot be deleted and stay selected."
+        />
         <DataTable
           columns={columns}
           rows={query.data?.results}
           rowKey={(t) => t.id}
+          selectable
+          selected={selection.selected}
+          onSelectedChange={selection.setSelected}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.refetch}

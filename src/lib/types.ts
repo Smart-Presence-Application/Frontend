@@ -96,6 +96,14 @@ export interface BulkResult<T = { id: number; name: string }> {
   failed: { name?: string; error?: string; errors?: unknown }[]
 }
 
+/** Outcome of a `bulk-delete/` call; `unlinked` is only sent for parents. */
+export interface BulkDeleteResult {
+  deleted: number[]
+  unlinked?: number[]
+  not_found: number[]
+  failed: { id: number; reason: string }[]
+}
+
 export interface Teacher {
   id: number
   employee_id: string

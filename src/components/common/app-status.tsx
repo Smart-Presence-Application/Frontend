@@ -16,7 +16,7 @@ import { systemApi } from "@/lib/endpoints"
 export const SYSTEM_STATUS_KEY = ["system-status"]
 
 /** The public website and login page stay open during maintenance, so a Super Admin can sign in and switch it off. */
-const OPEN_DURING_MAINTENANCE = new Set(["/", "/login", "/privacy-policy"])
+const OPEN_DURING_MAINTENANCE = new Set(["/", "/login", "/privacy-policy", "/status", "/docs"])
 
 /** Whether the platform is in maintenance; refreshed often while it is. */
 // eslint-disable-next-line react-refresh/only-export-components
@@ -103,7 +103,7 @@ function StatusScreen({
       <div aria-hidden="true" className="absolute inset-0 -z-10 bg-grid [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_70%)]" />
       <div aria-hidden="true" className="absolute top-1/3 left-1/2 -z-10 size-[32rem] -translate-x-1/2 rounded-full bg-primary/15 blur-3xl" />
 
-      <Logo className="mb-8" />
+      <Logo className="mb-8 h-10" />
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}

@@ -19,6 +19,8 @@ const LoginPage = lazy(() => import("@/pages/login"))
 const AppHomePage = lazy(() => import("@/pages/app-home"))
 const NotFoundPage = lazy(() => import("@/pages/not-found"))
 const PrivacyPolicyPage = lazy(() => import("@/pages/privacy-policy"))
+const StatusPage = lazy(() => import("@/pages/status"))
+const DocsPage = lazy(() => import("@/pages/docs"))
 
 const AdminLayout = lazy(() => import("@/components/admin/layout/admin-layout"))
 const Dashboard = lazy(() => import("@/pages/admin/dashboard"))
@@ -66,6 +68,8 @@ const router = createBrowserRouter([
           { path: "/login", element: <LoginPage /> },
           { path: "/app", element: <AppHomePage /> },
           { path: "/privacy-policy", element: <PrivacyPolicyPage /> },
+          { path: "/status", element: <StatusPage /> },
+          { path: "/docs", element: <DocsPage /> },
           { path: "*", element: <NotFoundPage /> },
         ],
       },
