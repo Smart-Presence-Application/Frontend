@@ -27,7 +27,7 @@ export function Logo({ className, inverted, link = true }: LogoProps) {
         aria-hidden
         viewBox="0 0 200 12"
         preserveAspectRatio="none"
-        className="logo-underline pointer-events-none absolute top-[92%] left-[3%] h-[28%] w-[94%] overflow-visible text-primary"
+        className="logo-underline pointer-events-none absolute top-[108%] left-[14%] h-[28%] w-[84%] overflow-visible text-primary"
       >
         <path
           d="M2 9 C 60 2, 140 2, 198 8"
